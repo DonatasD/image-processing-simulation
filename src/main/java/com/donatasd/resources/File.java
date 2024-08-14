@@ -1,3 +1,3 @@
-package com.donatasd;
+package com.donatasd.resources;
 
 public record File (String fileName, Integer size) { }

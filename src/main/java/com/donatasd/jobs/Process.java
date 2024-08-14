@@ -1,25 +1,24 @@
 package com.donatasd.jobs;
 
-import com.donatasd.File;
-import com.donatasd.resources.Memory;
+import com.donatasd.resources.File;
+import com.donatasd.resources.Processor;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.System.out;
 
 public class Process implements Runnable {
 
-    private final Memory memory;
+    private final Processor processor;
     private final BlockingQueue<File> filesToProcessQueue;
     private final BlockingQueue<File> filesToWrite;
     private final AtomicBoolean finishedReading;
     private final AtomicBoolean finishedProcessing;
 
-    private static final Integer JOB_TIME_MS = 460;
-
-    public Process(Memory memory, BlockingQueue<File> filesToProcessQueue, BlockingQueue<File> filesToWrite, AtomicBoolean finishedReading, AtomicBoolean finishedProcessing) {
-        this.memory = memory;
+    public Process(Processor processor, BlockingQueue<File> filesToProcessQueue, BlockingQueue<File> filesToWrite, AtomicBoolean finishedReading, AtomicBoolean finishedProcessing) {
+        this.processor = processor;
         this.filesToProcessQueue = filesToProcessQueue;
         this.filesToWrite = filesToWrite;
         this.finishedReading = finishedReading;
@@ -33,13 +32,16 @@ public class Process implements Runnable {
                 if (finishedReading.get() && filesToProcessQueue.isEmpty()) {
                     finishedProcessing.set(true);
                 } else {
-                    File file = filesToProcessQueue.take();
-                    out.println(STR."\{Thread.currentThread()} - PROCESS \{file.fileName()}");
-                    var processedFile = new File(STR."\{file.fileName()}_processed", file.size());
-                    memory.occupy(processedFile.size());
-                    Thread.sleep(JOB_TIME_MS);
-                    memory.release(file.size());
-                    filesToWrite.put(processedFile);
+                    File file = filesToProcessQueue.poll(100, TimeUnit.MILLISECONDS);
+                    try {
+                        if (file != null) {
+                            var processedFile = processor.processFile(file);
+                            filesToWrite.put(processedFile);
+                        }
+                    } catch (Exception e) {
+                        out.println(STR."Error processing file: \{e.getMessage()}");
+                        filesToProcessQueue.put(file);
+                    }
                 }
             }
         } catch (Exception e) {

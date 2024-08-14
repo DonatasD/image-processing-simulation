@@ -1,10 +1,11 @@
 package com.donatasd.jobs;
 
-import com.donatasd.File;
+import com.donatasd.resources.File;
 import com.donatasd.resources.Memory;
 import com.donatasd.resources.Storage;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.System.out;
@@ -31,10 +32,15 @@ public class Write implements Runnable {
                 if (finishedProcessing.get() && filesToWrite.isEmpty()) {
                     finishedWriting.set(true);
                 } else {
-                    var file = filesToWrite.take();
-                    out.println(STR."\{Thread.currentThread()} - WRITE \{file.fileName()}");
-                    storage.write(file);
-                    memory.release(file.size());
+                    var file = filesToWrite.poll(100, TimeUnit.MILLISECONDS);
+                    try {
+                        if (file != null) {
+                            storage.write(file);
+                        }
+                    } catch (InterruptedException e) {
+                        out.println(STR."Error writing file: \{e.getMessage()}");
+                        filesToWrite.put(file);
+                    }
                 }
             }
         } catch (Exception e) {

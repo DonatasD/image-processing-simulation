@@ -1,54 +1,24 @@
 package com.donatasd;
 
-import com.donatasd.jobs.Read;
-import com.donatasd.jobs.Process;
-import com.donatasd.jobs.Write;
-import com.donatasd.resources.Memory;
-import com.donatasd.resources.Storage;
-
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import com.donatasd.solutions.AdvancedSolution;
+import com.donatasd.solutions.BasicSolution;
+import com.donatasd.solutions.OptimalSolution;
+import com.donatasd.solutions.Solution;
+import com.donatasd.utils.ExecutionTimer;
 
 public class Main {
+    public static final Integer IMAGES_COUNT = 100;
+    public static final Integer MEMORY_SIZE = 100;
 
-    public static final BlockingQueue<String> filesToRead = new LinkedBlockingQueue<>();
-    public static final BlockingQueue<File> filesToProcess = new LinkedBlockingQueue<>();
-    public static final BlockingQueue<File> filesToWrite = new LinkedBlockingQueue<>();
-
-
-    public static final AtomicBoolean finishedReading = new AtomicBoolean(false);
-    public static final AtomicBoolean finishedProcessing = new AtomicBoolean(false);
-    public static final AtomicBoolean finishedWriting = new AtomicBoolean(false);
-
-    public static final Integer IMAGES_COUNT = 200;
-    public static final Integer FILE_SIZE = 1;
-
-    public static void main(String[] args) throws InterruptedException {
-        var totalThreads = Runtime.getRuntime().availableProcessors();
-        var processorThreadCount = totalThreads - 2;
-        var readThreadCount = 1;
-        var writeThreadCount = 1;
-        Memory memory = new Memory(new AtomicInteger(100));
-        Storage storage = new Storage();
-        ExecutorService executorService = Executors.newFixedThreadPool(totalThreads);
-
-        filesToRead.addAll(Arrays.asList(IntStream.rangeClosed(0, IMAGES_COUNT).mapToObj(Integer::toString).map((val) -> STR."fileName\{val}").toArray(String[]::new)));
-
-        var startTime = System.currentTimeMillis();
-        var tasks = Stream.of(
-                Collections.nCopies(readThreadCount, Executors.callable(new Read(memory, storage, filesToRead, filesToProcess, finishedReading))),
-                Collections.nCopies(processorThreadCount, Executors.callable(new Process(memory, filesToProcess, filesToWrite, finishedReading, finishedProcessing))),
-                Collections.nCopies(writeThreadCount, Executors.callable(new Write(memory, storage, filesToWrite, finishedProcessing, finishedWriting)))
-        ).flatMap(Collection::stream).collect(Collectors.toList());
-        executorService.invokeAll(tasks);
-        executorService.shutdown();
-
-        var endTime = System.currentTimeMillis();
-        System.out.println(STR."TotalTime:  \{endTime - startTime}ms");
+    public static void main(String[] args) {
+        Solution basicSolution = new BasicSolution(MEMORY_SIZE, IMAGES_COUNT);
+        Long timeBasicSolution = ExecutionTimer.measure(basicSolution);
+        Solution advancedSolution = new AdvancedSolution(MEMORY_SIZE, IMAGES_COUNT);
+        Long timeAdvancedSolution = ExecutionTimer.measure(advancedSolution);
+        Solution optimalSolution = new OptimalSolution(MEMORY_SIZE, IMAGES_COUNT);
+        Long timeOptimalSolution = ExecutionTimer.measure(optimalSolution);
+        System.out.println(STR."Basic solution time: \{timeBasicSolution}MS");
+        System.out.println(STR."Advanced solution time: \{timeAdvancedSolution}MS");
+        System.out.println(STR."Optimal solution time: \{timeOptimalSolution}MS");
     }
 }

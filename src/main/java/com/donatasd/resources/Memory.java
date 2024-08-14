@@ -7,8 +7,8 @@ public class Memory {
     private final AtomicInteger capacity;
     private final AtomicInteger used;
 
-    public Memory(AtomicInteger capacity) {
-        this.capacity = capacity;
+    public Memory(Integer capacity) {
+        this.capacity = new AtomicInteger(capacity);
         this.used = new AtomicInteger(0);
     }
 
